@@ -246,9 +246,9 @@ function saveKnowledge() {
   dom.knowledgeCategory.value = ''; knowledgeImageData = null;
   saveKnowledgeStore(); renderKnowledge(); renderCatFilter('knowledge');
 }
-function deleteKnowledge(id) { state.knowledge = state.knowledge.filter(k => k.id !== id); saveKnowledgeStore(); renderKnowledge(); }
+function deleteKnowledge(id) { const k = state.knowledge.find(x => x.id === id); if (!k) return; k.deletedAt = new Date().toISOString(); saveKnowledgeStore(); renderKnowledge(); }
 function renderKnowledge() {
-  let items = state.knowledge;
+  let items = state.knowledge.filter(k => !k.deletedAt);
   if (state.catFilter.knowledge) items = items.filter(i => i.category === state.catFilter.knowledge);
   if (!items.length) { dom.knowledgeList.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><span class="empty-state-text">还没有知识笔记</span></div>'; return; }
   dom.knowledgeList.innerHTML = items.map(k => '<div class="knowledge-item" data-id="' + k.id + '"><div class="knowledge-header"><span class="knowledge-time">' + fmtTime(k.createdAt) + '</span><div class="item-actions"><button class="item-edit" data-id="' + k.id + '">edit</button><button class="knowledge-delete" data-id="' + k.id + '">x</button></div></div>' + (k.image ? '<img class="knowledge-img" src="' + k.image + '" onclick="this.classList.toggle(\'expanded\')">' : '') + '<div class="knowledge-content" data-mode="view">' + esc(k.text) + (k.category ? '<span class="cat-tag">' + esc(k.category) + '</span>' : '') + '</div></div>').join('');
@@ -269,14 +269,18 @@ function renderTimeline() {
 }
 
 function renderTrash() {
-  const items = [...state.todos.filter(t => t.deletedAt).map(t => ({ ...t, kind: 'todo' })), ...state.ideas.filter(i => i.deletedAt).map(i => ({ ...i, kind: 'idea' }))].sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+  const items = [
+    ...state.todos.filter(t => t.deletedAt).map(t => ({ ...t, kind: 'todo' })),
+    ...state.ideas.filter(i => i.deletedAt).map(i => ({ ...i, kind: 'idea' })),
+    ...state.knowledge.filter(k => k.deletedAt).map(k => ({ ...k, kind: 'knowledge' }))
+  ].sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
   if (!items.length) { dom.trashList.innerHTML = '<div class="empty-state"><div class="empty-state-icon"></div><span class="empty-state-text">这里是恢复区</span></div>'; return; }
-  dom.trashList.innerHTML = items.map(item => '<div class="trash-item"><div class="trash-meta">' + (item.kind === 'todo' ? '待办' : '想法') + ' 删除于 ' + fmtTime(item.deletedAt) + '</div><div class="trash-text">' + esc(item.text) + '</div><div class="trash-actions"><button class="btn-secondary restore-btn" data-kind="' + item.kind + '" data-id="' + item.id + '">恢复</button><button class="delete-perm-btn" data-kind="' + item.kind + '" data-id="' + item.id + '">永久删除</button></div></div>').join('');
+  dom.trashList.innerHTML = items.map(item => '<div class="trash-item"><div class="trash-meta">' + (item.kind === 'todo' ? '待办' : item.kind === 'idea' ? '想法' : '知识') + ' 删除于 ' + fmtTime(item.deletedAt) + '</div><div class="trash-text">' + esc(item.text) + '</div><div class="trash-actions"><button class="btn-secondary restore-btn" data-kind="' + item.kind + '" data-id="' + item.id + '">恢复</button><button class="delete-perm-btn" data-kind="' + item.kind + '" data-id="' + item.id + '">永久删除</button></div></div>').join('');
   dom.trashList.querySelectorAll('.restore-btn').forEach(b => b.addEventListener('click', () => restoreItem(b.dataset.kind, b.dataset.id)));
   dom.trashList.querySelectorAll('.delete-perm-btn').forEach(b => b.addEventListener('click', () => permanentDelete(b.dataset.kind, b.dataset.id)));
 }
-function restoreItem(kind, id) { const list = kind === 'todo' ? state.todos : state.ideas; const item = list.find(x => x.id === id); if (!item) return; delete item.deletedAt; saveAll(); renderAll(); }
-function permanentDelete(kind, id) { if (kind === 'todo') state.todos = state.todos.filter(x => x.id !== id); else state.ideas = state.ideas.filter(x => x.id !== id); saveAll(); renderAll(); }
+function restoreItem(kind, id) { const list = kind === 'todo' ? state.todos : kind === 'idea' ? state.ideas : state.knowledge; const item = list.find(x => x.id === id); if (!item) return; delete item.deletedAt; saveAll(); renderAll(); }
+function permanentDelete(kind, id) { if (kind === 'todo') state.todos = state.todos.filter(x => x.id !== id); else if (kind === 'idea') state.ideas = state.ideas.filter(x => x.id !== id); else state.knowledge = state.knowledge.filter(x => x.id !== id); saveAll(); renderAll(); }
 
 // ===== 编辑 =====
 function editItem(kind, id) {
