@@ -390,24 +390,31 @@ function esc(t) { const d = document.createElement('div'); d.textContent = t; re
 
 // 自定义分类下拉
 function showCatMenu(inp) {
-  const all = [...state.todos, ...state.ideas, ...state.knowledge];
-  const existing = [...new Set(all.map(i => i.category).filter(Boolean))].sort();
-  const cur = inp.value.trim();
-  let cats = [...existing];
-  if (cur && !existing.includes(cur)) cats.unshift(cur);
-  const rect = inp.getBoundingClientRect();
-  const menu = dom.catMenu;
-  if (!cats.length) {
-    // 没有任何分类，提示用户
-    menu.innerHTML = '<div class="cat-menu-opt" style="color:var(--menu-text);opacity:.5;cursor:default">输入新标签后按回车保存</div>';
-  } else {
-    menu.innerHTML = cats.map((c, i) => '<div class="cat-menu-opt' + (i === 0 ? ' active' : '') + '" data-idx="' + i + '" data-cat="' + c + '">' + c + (c === cur && !existing.includes(cur) ? ' <span style="opacity:.45;font-size:10px">新增</span>' : '') + '</div>').join('');
+  try {
+    console.log('[cat] showCatMenu called, state.todos:', state.todos.length, 'ideas:', state.ideas.length, 'knowledge:', state.knowledge.length);
+    const all = [...state.todos, ...state.ideas, ...state.knowledge];
+    const existing = [...new Set(all.map(i => i.category).filter(Boolean))].sort();
+    console.log('[cat] existing categories:', existing);
+    const cur = inp.value.trim();
+    let cats = [...existing];
+    if (cur && !existing.includes(cur)) cats.unshift(cur);
+    const rect = inp.getBoundingClientRect();
+    console.log('[cat] rect:', rect.left, rect.top, rect.width, rect.height);
+    const menu = dom.catMenu;
+    if (!cats.length) {
+      menu.innerHTML = '<div class="cat-menu-opt" style="padding:10px 16px;color:var(--text-muted);cursor:default">暂无分类 — 输入新标签后按回车保存</div>';
+    } else {
+      menu.innerHTML = cats.map((c, i) => '<div class="cat-menu-opt' + (i === 0 ? ' active' : '') + '" data-idx="' + i + '" data-cat="' + c + '">' + c + (c === cur && !existing.includes(cur) ? ' <span style="opacity:.45;font-size:10px">新增</span>' : '') + '</div>').join('');
+    }
+    menu.style.left = Math.round(rect.left) + 'px';
+    menu.style.top = Math.round(rect.bottom + 2) + 'px';
+    menu.style.minWidth = Math.max(140, Math.round(rect.width)) + 'px';
+    menu.classList.remove('hidden');
+    menu._input = inp;
+    console.log('[cat] menu shown, items:', cats.length);
+  } catch(e) {
+    console.error('[cat] showCatMenu error:', e);
   }
-  menu.style.left = Math.round(rect.left) + 'px';
-  menu.style.top = Math.round(rect.bottom + 2) + 'px';
-  menu.style.minWidth = Math.max(140, Math.round(rect.width)) + 'px';
-  menu.classList.remove('hidden');
-  menu._input = inp;
 }
 function catNav(d) {
   const menu = dom.catMenu;
