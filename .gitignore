@@ -1,0 +1,10 @@
+node_modules/
+dist/
+DesktopBookmark-portable/
+DesktopBookmark-portable-fixed/
+*.zip
+*.exe
+*.log
+.DS_Store
+Thumbs.db
+.cache/
